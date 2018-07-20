@@ -23,47 +23,56 @@ def talker(data, param):
         image = np.array (gray)
         width = 640
         height = 360
+        
+        #Parametro a publicar
+        mov = vector21() 
         #Transformamos el frame para despues escanear lo que detecta
         zbar_image = zbar.Image(width, height, 'Y800', image.tostring())
 
         # Scans the zbar image.
         scanner = zbar.ImageScanner()
-        scanner.scan(zbar_image)
-        # Prints data from image.
-        for decoded in zbar_image:
-            #print("Data: ",decoded.data)
-            #print("Tipo: ",decoded.type)
-            #print("Pos: ",decoded.location)
+        n  = scanner.scan(zbar_image) 
+        if n == 1:
+            # Prints data from image.
+            for decoded in zbar_image:
+                #print("Data: ",decoded.data)
+                #print("Tipo: ",decoded.type)
+                #print("Pos: ",decoded.location)
 
-            # Dibujando Puntos
-            puntos = decoded.location
-            centro = puntos[0]  
-            d1 = (puntos[2][0] + puntos[3][0]) / 2
-            d2 = (puntos[1][1] + puntos[2][1]) / 2
+                # Dibujando Puntos
+                puntos = decoded.location
+                centro = puntos[0]  
+                d1 = (puntos[2][0] + puntos[3][0]) / 2
+                d2 = (puntos[1][1] + puntos[2][1]) / 2
 
-            # Centro QR Code (d1,d2)
-            cv2.circle(output,(d1,d2), 5, (0,0,255), -1)
+                # Centro QR Code (d1,d2)
+                cv2.circle(output,(d1,d2), 5, (0,0,255), -1)
 
-            # Centro Video Frame (c1,c2)
-            c1 = 320
-            c2 = 180
-            cv2.circle(output,(c1,c2), 20, (0,90,255), -1)
-            cv2.line(output,(c1,c2),(d1,d2),(0,0,255),5)
+                # Centro Video Frame (c1,c2)
+                c1 = 320
+                c2 = 180
+                cv2.circle(output,(c1,c2), 20, (0,90,255), -1)
+                cv2.line(output,(c1,c2),(d1,d2),(0,0,255),5)
 
-            #print("Centro Frame :",c1, " ",c2)
-            print("Enviando Centro QR code :",d1, " ",d2)
-            
-            mov = vector21() 
-            mov.x = d1
-            mov.y = d2
+                #print("Centro Frame :",c1, " ",c2)
+                
+                
+                
+                mov.x = d1
+                mov.y = d2
+                param.publish(mov)
+                # Number of points in the convex hull
+                n = len(puntos)
+        
+                # Draw the convext hull
+                for j in range(0,n):
+                    cv2.line(output, puntos[j], puntos[ (j+1) % n], (255,0,0), 3)
+        else:
+            mov.x = 0
+            mov.y = 0
             param.publish(mov)
-            # Number of points in the convex hull
-            n = len(puntos)
-    
-            # Draw the convext hull
-            for j in range(0,n):
-                cv2.line(output, puntos[j], puntos[ (j+1) % n], (255,0,0), 3)
-           
+
+        #print("Enviando Centro QR code :",mov.x, " ",mov.y)
         #cv2.imshow("Image", output)
         #cv2.waitKey(3)
 
@@ -71,7 +80,7 @@ def talker(data, param):
 
 def func():
     rospy.init_node('talker', anonymous=True)
-    pub = rospy.Publisher('preprocesamiento', vector21, queue_size=10)
+    pub = rospy.Publisher('preprocesamiento', vector21, queue_size=1)
     rospy.Subscriber("/ardrone/front/image_raw", Image, talker, pub)
     rospy.spin()
 
